@@ -1,0 +1,123 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Smart Roster Manager</title><meta name="color-scheme" content="light dark">
+<style>
+:root{--bg:#f6f7f9;--fg:#1c2330;--card:#fff;--bd:#d9dee6;--ac:#2f5bea;--ok:#d7f2df;--bad:#f9cccc;--warn:#fdeccb;--off:#e3e6ed;--lv:#cfe6fb;--mut:#6b7587;color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161d;--fg:#e6e9ef;--card:#1b212b;--bd:#344052;--ac:#7c9bff;--ok:#1d4a2d;--bad:#5f2424;--warn:#5a4318;--off:#2a313d;--lv:#1f4262;--mut:#97a2b5}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:10px 12px;background:var(--card);border-bottom:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+h1{font-size:16px;margin:0;flex:1 1 100%}main{padding:10px 12px;max-width:1400px;margin:auto}
+nav{display:flex;gap:6px;padding:8px 12px 0}nav button{flex:1}
+button,select,input{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:5px 8px}
+button{cursor:pointer}button.on,button.pri{background:var(--ac);color:#fff;border-color:var(--ac)}
+.sc{overflow-x:auto;max-width:100%;border:1px solid var(--bd);border-radius:8px;background:var(--card);margin:8px 0}
+table{border-collapse:collapse;font-size:12px}th,td{border:1px solid var(--bd);padding:3px 5px;text-align:center;white-space:nowrap}
+th.nm,td.nm{position:sticky;left:0;background:var(--card);text-align:left;z-index:1;min-width:120px}
+td.c{cursor:pointer;min-width:30px}.sWO{background:var(--off)}.sHD{color:var(--mut)}.sLV{background:var(--lv)}.sCO{background:var(--lv)}.ov{outline:2px solid var(--ac);outline-offset:-2px}
+.bad{background:var(--bad)}.ok{background:var(--ok)}.cl{color:var(--mut)}.we{background:var(--off)}
+.e{color:#d33}.card{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;margin:6px 0}
+.card.error{border-left:4px solid #d33}.card.warn{border-left:4px solid #e69a00}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}small,.mut{color:var(--mut)}
+details{margin:8px 0}summary{font-weight:600;cursor:pointer}.chip{display:inline-block;background:var(--off);border-radius:10px;padding:1px 8px;margin:1px}
+</style></head><body>
+<header><h1>Smart Roster Manager</h1><label>Month <input type="month" id="mo"></label><button class="pri" onclick="generate();render()">Generate roster</button><span id="sum"></span><button onclick="if(confirm('Reset to sample data?')){init(true)}">Reset sample</button></header>
+<nav><button data-t="roster" onclick="S.tab='roster';render()">Roster</button><button data-t="issues" onclick="S.tab='issues';render()">Conflicts &amp; changes</button><button data-t="setup" onclick="S.tab='setup';render()">Setup</button></nav>
+<main id="main"></main>
+<script>
+const D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],CAL={all365:'365 days',noHol:'Daily, holidays off',noSunHol:'Sun & holidays off'};
+const FN='Aarav Diya Kabir Meera Rohan Isha Vikram Anaya Arjun Sana Neel Tara Dev Riya Kiran Pooja Yash Nisha Om Kavya Raj Simran Aditya Nidhi Samir Zoya Harsh Mira Varun Esha Dhruv Pari'.split(' ');
+const BN='Glowly UrbanNest FitFuel PureRoots BrewBox Snugly Kidoz Velvet Zesta Nomad PetPal Lumio Aurora Craftly Bloomi Tidy Spark Munch Cozy Luxe Trendy Mellow Vivid Orbit Pixel Amber Nectar'.split(' ');
+let S;const $=s=>document.querySelector(s);
+const emp=id=>S.emps.find(e=>e.id===id),myProcs=e=>S.asg.filter(a=>a.emp===e.id).map(a=>S.procs.find(p=>p.id===a.proc)).filter(Boolean);
+const bname=p=>(S.brands.find(b=>b.id===p.brand)||{}).name,esc=s=>String(s).replace(/[<>&"]/g,c=>'&#'+c.charCodeAt(0)+';');
+const hol=d=>S.holidays.includes(d),dayOpts=D.map((d,i)=>[i,d]);
+function save(){try{localStorage.setItem('roster-v1',JSON.stringify(S))}catch(e){}}
+function seed(){
+ const S0={pods:[0,1,2,3].map(i=>({id:'P'+i,name:'Pod '+'ABCD'[i],lead:'E'+i})),brands:[],procs:[],emps:[],asg:[],leaves:[],holidays:['2026-12-25','2027-01-26'],month:'2026-12',offs:{},ov:{},v:'company',t:'',tab:'roster'};
+ let n=0;const E=()=>{const e={id:'E'+n,name:FN[n],pod:'P'+(n%4),fixedOff:null,pref:[]};n++;S0.emps.push(e);return e};
+ const B=i=>{const b={id:'B'+i,name:BN[i]};S0.brands.push(b);return b};
+ const P=(b,name,cal,min=1,we)=>{const p={id:'R'+S0.procs.length,brand:b.id,name,cal,min,minWE:we??min};S0.procs.push(p);return p};
+ const A=(e,p)=>S0.asg.push({emp:e.id,proc:p.id,backup:false});
+ for(let i=0;i<14;i++){const e=E(),b=B(i);A(e,P(b,'Customer Support',i%5?'noSunHol':'all365'));if(i%3==0)A(e,P(b,'Abandoned Cart','noSunHol'))}
+ for(let i=0;i<4;i++){const e=E();for(let j=0;j<2;j++)A(e,P(B(14+i*2+j),'Customer Support',i==3?'noHol':'noSunHol'))}
+ let b=B(22);let a=E(),c=E(),d=E();A(a,P(b,'Customer Support','all365'));A(c,P(b,'Abandoned Cart','noHol'));A(d,P(b,'NDR','noSunHol'));
+ b=B(23);const cs=P(b,'Customer Support','all365',2,2);[E(),E(),E()].forEach(e=>A(e,cs));
+ b=B(24);const c4=P(b,'Customer Support','noSunHol'),r4=P(b,'Retention','noSunHol');a=E();c=E();A(a,c4);A(c,c4);A(c,r4);
+ b=B(25);const c5=P(b,'Customer Support','all365'),nd=P(b,'NDR','noHol');a=E();c=E();d=E();A(a,c5);A(c,c5);A(d,nd);
+ b=B(26);const c6=P(b,'Customer Support','noHol'),rt=P(b,'Retention','noSunHol');a=E();c=E();d=E();A(a,c6);A(c,rt);A(d,c6);A(d,rt);
+ S0.emps[3].pref=[6];S0.emps[7].pref=[1];S0.leaves.push({emp:'E22',date:'2026-12-10',type:'leave'});
+ return S0}
+function init(reset){let s=null;if(!reset){try{s=JSON.parse(localStorage.getItem('roster-v1'))}catch(e){}}S=s||seed();if(!s){generate()}$('#mo').value=S.month;render()}
+$('#mo').onchange=e=>{S.month=e.target.value||S.month;render()};
+function days(){const[y,m]=S.month.split('-').map(Number),n=new Date(y,m,0).getDate();return Array.from({length:n},(_,i)=>{const wd=new Date(y,m-1,i+1).getDay();return{d:i+1,wd,date:`${y}-${String(m).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`}})}
+const opens=(p,x)=>p.cal==='all365'||(p.cal==='noHol'&&!hol(x.date))||(p.cal==='noSunHol'&&x.wd!==0&&!hol(x.date));
+// status: W working, WO weekly/manual off, HD nothing open, LV leave, CO comp-off
+function status(e,x){const lv=S.leaves.find(l=>l.emp===e.id&&l.date===x.date);if(lv)return lv.type==='comp'?'CO':'LV';
+ const o=S.ov[e.id+'|'+x.date];if(o==='OFF')return'WO';if(o==='WORK')return'W';if(S.offs[e.id]===x.wd)return'WO';
+ const ps=myProcs(e);return ps.length&&!ps.some(p=>opens(p,x))?'HD':'W'}
+function cover(){const c={},issues=[],ds=days();
+ for(const p of S.procs){const team=S.asg.filter(a=>a.proc===p.id).map(a=>emp(a.emp)).filter(Boolean);
+  for(const x of ds){if(!opens(p,x))continue;const need=x.wd%6?p.min:p.minWE,w=team.filter(e=>status(e,x)==='W');c[p.id+'|'+x.date]={have:w.length,need};
+   if(w.length<need){const why=team.filter(e=>status(e,x)!=='W').map(e=>`${e.name} (${{WO:'weekly off',LV:'leave',CO:'comp-off',HD:'off'}[status(e,x)]})`).join(', ')||'nobody assigned';
+    issues.push({sev:'error',p,x,msg:`${bname(p)} / ${p.name}, ${x.date} ${D[x.wd]}: ${w.length} of ${need} staffed. Unavailable: ${why}`})}}}
+ for(const e of S.emps){if(e.pref.length&&S.offs[e.id]!==undefined&&!e.pref.includes(S.offs[e.id]))issues.push({sev:'warn',msg:`${e.name}: weekly off is ${D[S.offs[e.id]]}, preferred ${D[e.pref[0]]} (preference only)`});
+  if(!myProcs(e).length)issues.push({sev:'warn',msg:`${e.name} has no assignments`})}
+ return{c,issues}}
+function generate(){S.offs={};S.ov={};const cnt={},load={};
+ const tm=e=>Math.min(99,...myProcs(e).map(p=>S.asg.filter(a=>a.proc===p.id).length));
+ for(const e of [...S.emps].sort((a,b)=>tm(a)-tm(b))){const ps=myProcs(e);let best=0,bc=1e9;
+  for(let c=0;c<7;c++){let cost=0;for(const p of ps){if(p.cal==='noSunHol'&&c===0)continue;const n=S.asg.filter(a=>a.proc===p.id).length,off=cnt[p.id+'|'+c]||0,need=c%6?p.min:p.minWE;cost+=100*Math.max(0,need-(n-off-1))+off*3}
+   if(e.pref.includes(c))cost-=5;cost+=(load[c]||0)*.1;if(cost<bc){bc=cost;best=c}}
+  const d=e.fixedOff!=null?e.fixedOff:best;S.offs[e.id]=d;load[d]=(load[d]||0)+1;ps.forEach(p=>cnt[p.id+'|'+d]=(cnt[p.id+'|'+d]||0)+1)}}
+function sugg(i){const team=S.asg.filter(a=>a.proc===i.p.id).map(a=>emp(a.emp)),pd=new Set(team.map(e=>e.pod));
+ return S.emps.filter(e=>!team.includes(e)&&status(e,i.x)==='W').sort((a,b)=>(pd.has(b.pod)-pd.has(a.pod))||myProcs(a).length-myProcs(b).length).slice(0,3)}
+function opt(arr,val,blank){return(blank!==undefined?`<option value="">${blank}</option>`:'')+arr.map(([v,t])=>`<option value="${v}"${v==val&&val!==null&&val!==undefined?' selected':''}>${t}</option>`).join('')}
+function scope(){const t=S.v,id=S.t;let es=S.emps,ps=S.procs;const has=(e,p)=>S.asg.some(a=>a.emp===e.id&&a.proc===p.id);
+ if(t==='pod'){es=es.filter(e=>e.pod===id);ps=[...new Set(es.flatMap(myProcs))]}
+ if(t==='brand'||t==='process'){ps=ps.filter(p=>t==='brand'?p.brand===id:p.id===id);es=es.filter(e=>ps.some(p=>has(e,p)))}
+ if(t==='employee'){es=es.filter(e=>e.id===id);ps=es[0]?myProcs(es[0]):[]}
+ return{es,ps}}
+function tog(e,d){const k=e+'|'+d,o=S.ov[k];if(!o)S.ov[k]='OFF';else if(o==='OFF')S.ov[k]='WORK';else delete S.ov[k];render()}
+function rRoster(cv){
+ const O={company:[['','All employees']],pod:S.pods.map(p=>[p.id,p.name]),brand:S.brands.map(b=>[b.id,b.name]),process:S.procs.map(p=>[p.id,bname(p)+' / '+p.name]),employee:S.emps.map(e=>[e.id,e.name])}[S.v];
+ if(!O.some(o=>o[0]===S.t))S.t=O[0][0];const{es,ps}=scope(),ds=days();
+ const hd='<tr><th class="nm">'+ds.map(x=>`<th class="${hol(x.date)?'bad':x.wd%6?'':'we'}">${x.d}<br><small>${D[x.wd][0]}${hol(x.date)?'*':''}</small></th>`).join('');
+ const L={W:'W',WO:'OFF',HD:'·',LV:'L',CO:'C'};
+ const er=es.map(e=>`<tr><td class="nm"><b>${e.name}</b>${S.pods.some(p=>p.lead===e.id)?' ★':''}<br><small>${myProcs(e).map(p=>bname(p)+':'+p.name.split(' ').map(w=>w[0]).join('')).join(', ')||'-'}</small></td>`+ds.map(x=>{const s=status(e,x);return`<td class="c s${s}${S.ov[e.id+'|'+x.date]?' ov':''}" onclick="tog('${e.id}','${x.date}')">${L[s]}</td>`}).join('')).join('');
+ const pr=ps.map(p=>`<tr><td class="nm"><b>${bname(p)}</b><br><small>${p.name} · ${CAL[p.cal]}</small></td>`+ds.map(x=>{if(!opens(p,x))return'<td class="cl">·</td>';const k=cv.c[p.id+'|'+x.date];return`<td class="${k.have<k.need?'bad':'ok'}">${k.have}/${k.need}</td>`}).join('')).join('');
+ return`<div class="row"><select onchange="S.v=this.value;S.t='';render()">${opt([['company','Company-wide'],['pod','Pod-wise'],['brand','Brand-wise'],['process','Process-wise'],['employee','Employee-wise']],S.v)}</select><select onchange="S.t=this.value;render()">${opt(O,S.t)}</select><button onclick="csv()">Export CSV</button></div>
+ <p class="mut">W working · OFF weekly off · L leave · C comp-off · · closed · * holiday. Tap a cell to force OFF / WORK (blue outline) and see the impact.</p>
+ <div class="sc"><table>${hd}${er||'<tr><td>No employees</td>'}</table></div>
+ <details ${S.v==='company'?'':'open'}><summary>Coverage by process (working / required)</summary><div class="sc"><table>${hd}${pr}</table></div></details>`}
+function csv(){const{es}=scope(),ds=days();let t='Employee,Pod,'+ds.map(x=>x.date).join(',')+'\n'+es.map(e=>[e.name,e.pod,...ds.map(x=>status(e,x))].join(',')).join('\n');
+ const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(t);a.download='roster-'+S.month+'.csv';a.click()}
+function rIssues(cv){const eo=S.emps.map(e=>[e.id,e.name]);
+ return`<div class="card"><b>Handle a change after the roster is generated</b><div class="row"><select id="lE">${opt(eo)}</select><input type="date" id="lD" value="${S.month}-10"><select id="lT"><option value="leave">Leave</option><option value="comp">Comp-off</option></select><button class="pri" onclick="addL()">Apply</button></div><small>The roster recalculates instantly. Gaps appear below with backup suggestions, no rebuild needed.</small></div>
+ <h3>${cv.issues.filter(i=>i.sev==='error').length} coverage gaps (must fix), ${cv.issues.filter(i=>i.sev==='warn').length} warnings (preferences)</h3>`+
+ (cv.issues.map(i=>`<div class="card ${i.sev}">${i.msg}${i.sev==='error'?'<div class="row">'+(sugg(i).map(e=>`<button onclick="backup('${i.p.id}','${e.id}')">Add ${e.name} as backup</button>`).join('')||'<small>No free employee that day. Change a weekly off or hire cover.</small>')+'</div>':''}</div>`).join('')||'<div class="card">No conflicts. Roster is valid.</div>')}
+function backup(p,e){S.asg.push({emp:e,proc:p,backup:true});render()}
+function addL(){const e=$('#lE').value,d=$('#lD').value;if(d){S.leaves.push({emp:e,date:d,type:$('#lT').value});render()}}
+function setE(id,k,v){const e=emp(id);if(k==='fixedOff'){e.fixedOff=v===''?null:+v;if(v!=='')S.offs[id]=+v}else if(k==='pref')e.pref=v===''?[]:[+v];else e[k]=v;render()}
+function setP(id,k,v){const p=S.procs.find(p=>p.id===id);p[k]=k==='cal'?v:Math.max(0,+v||0);render()}
+function del(k,id){if(k==='emps'){S.asg=S.asg.filter(a=>a.emp!==id);S.leaves=S.leaves.filter(l=>l.emp!==id)}
+ if(k==='brands')S.procs.filter(p=>p.brand===id).forEach(p=>del('procs',p.id));if(k==='procs')S.asg=S.asg.filter(a=>a.proc!==id);S[k]=S[k].filter(x=>x.id!==id);render()}
+const nid=(p,a)=>p+(Math.max(-1,...a.map(x=>+x.id.slice(1)))+1);
+function addE(){const n=$('#ne').value.trim();if(n){S.emps.push({id:nid('E',S.emps),name:esc(n),pod:$('#np').value,fixedOff:null,pref:[]});render()}}
+function addB(){const n=$('#nb').value.trim();if(n){S.brands.push({id:nid('B',S.brands),name:esc(n)});render()}}
+function addP(){const n=$('#pn').value.trim();if(n&&$('#pb').value){S.procs.push({id:nid('R',S.procs),brand:$('#pb').value,name:esc(n),cal:$('#pc').value,min:1,minWE:1});render()}}
+function addA(p){const e=$('#as'+p).value;if(e&&!S.asg.some(a=>a.emp===e&&a.proc===p)){S.asg.push({emp:e,proc:p,backup:false});render()}}
+function unA(e,p){S.asg=S.asg.filter(a=>!(a.emp===e&&a.proc===p));render()}
+function rSetup(){const eo=S.emps.map(e=>[e.id,e.name]),po=S.pods.map(p=>[p.id,p.name]);
+ return`<details><summary>Pods and pod leads</summary>${S.pods.map(p=>`<div class="row">${p.name} lead: <select onchange="S.pods.find(x=>x.id==='${p.id}').lead=this.value;render()">${opt(eo,p.lead)}</select></div>`).join('')}</details>
+ <details><summary>Employees (${S.emps.length})</summary><div class="sc"><table><tr><th>Name<th>Pod<th>Fixed off (mandatory)<th>Prefers off<th></th></tr>${S.emps.map(e=>`<tr><td>${e.name}<td><select onchange="setE('${e.id}','pod',this.value)">${opt(po,e.pod)}</select><td><select onchange="setE('${e.id}','fixedOff',this.value)">${opt(dayOpts,e.fixedOff,'Auto')}</select><td><select onchange="setE('${e.id}','pref',this.value)">${opt(dayOpts,e.pref[0],'None')}</select><td><button onclick="del('emps','${e.id}')">×</button>`).join('')}</table></div>
+ <div class="row"><input id="ne" placeholder="Name"><select id="np">${opt(po)}</select><button onclick="addE()">Add employee</button></div></details>
+ <details open><summary>Brands, processes, rules and assignments</summary><div class="sc"><table><tr><th>Brand<th>Process<th>Calendar<th>Min<th>Min Sat/Sun<th>Team<th>Assign<th></th></tr>${S.procs.map(p=>`<tr><td>${bname(p)}<td>${p.name}<td><select onchange="setP('${p.id}','cal',this.value)">${opt(Object.entries(CAL),p.cal)}</select><td><input type="number" min="0" style="width:48px" value="${p.min}" onchange="setP('${p.id}','min',this.value)"><td><input type="number" min="0" style="width:48px" value="${p.minWE}" onchange="setP('${p.id}','minWE',this.value)"><td style="white-space:normal">${S.asg.filter(a=>a.proc===p.id).map(a=>`<span class="chip">${(emp(a.emp)||{}).name}${a.backup?' (backup)':''} <a href="#" onclick="unA('${a.emp}','${p.id}');return false">×</a></span>`).join('')}<td><select id="as${p.id}">${opt(eo)}</select><button onclick="addA('${p.id}')">+</button><td><button onclick="del('procs','${p.id}')">×</button>`).join('')}</table></div>
+ <div class="row"><input id="nb" placeholder="New brand"><button onclick="addB()">Add brand</button></div>
+ <div class="row"><select id="pb">${opt(S.brands.map(b=>[b.id,b.name]))}</select><input id="pn" placeholder="Process (e.g. CS)"><select id="pc">${opt(Object.entries(CAL))}</select><button onclick="addP()">Add process</button></div></details>
+ <details><summary>Leaves and comp-offs (${S.leaves.length})</summary>${S.leaves.map((l,i)=>`<div class="row">${(emp(l.emp)||{}).name} · ${l.date} · ${l.type}<button onclick="S.leaves.splice(${i},1);render()">×</button></div>`).join('')}</details>
+ <details><summary>Public holidays (${S.holidays.length})</summary>${S.holidays.map((h,i)=>`<span class="chip">${h} <a href="#" onclick="S.holidays.splice(${i},1);render();return false">×</a></span>`).join('')}<div class="row"><input type="date" id="hd"><button onclick="if($('#hd').value){S.holidays.push($('#hd').value);render()}">Add holiday</button></div></details>
+ <p class="mut">Assumptions: one weekly off per employee, chosen by the generator unless fixed. An employee shows as closed (·) when none of their processes operate that day. Leave always wins over everything.</p>`}
+function render(){save();const cv=cover(),err=cv.issues.filter(i=>i.sev==='error').length;
+ $('#sum').innerHTML=err?`<b class="e">${err} gaps</b>`:'<b>No gaps</b>';
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.tab));
+ $('#main').innerHTML=({roster:rRoster,issues:rIssues,setup:rSetup})[S.tab](cv)}
+init();
+</script></body></html>
