@@ -2,9 +2,9 @@
 
 Datastraw Tech Internship Assessment, by Tanushri Shelke.
 
-- **Live app:** `<PASTE GITHUB PAGES URL HERE>`
-- **Demo video:** `<PASTE VIDEO LINK HERE>`
-- **LinkedIn:** `<PASTE LINKEDIN LINK HERE>`
+- **Live app:** `https://shelketanushri5-dev.github.io/smart-roster/`
+- **Demo video:** 'https://drive.google.com/file/d/17Vqobvryt6QgsaPxplrdcMK-HMd45JbQ/view?usp=drivesdk'
+- **LinkedIn:** (https://www.linkedin.com/in/tanushri-shelke-644b5b451?utm_source=share_via&utm_content=profile&utm_medium=member_android)
 
 A browser-based tool that helps an operations manager plan, generate, validate and change monthly rosters across brands, processes and pods. It comes with a realistic sample dataset (32 employees, 27 brands, 4 pods).
 
