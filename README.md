@@ -2,7 +2,7 @@
 
 Datastraw Tech Internship Assessment, by Tanushri Shelke.
 
-- **Live app:** `https://shelketanushri5-dev.github.io/smart-roster/`
+- **Live app:** https://shelketanushri5-dev.github.io/smart-roster/
 - **Demo video:** 'https://drive.google.com/file/d/17Vqobvryt6QgsaPxplrdcMK-HMd45JbQ/view?usp=drivesdk'
 - **LinkedIn:** (https://www.linkedin.com/in/tanushri-shelke-644b5b451?utm_source=share_via&utm_content=profile&utm_medium=member_android)
 
